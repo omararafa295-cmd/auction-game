@@ -26,8 +26,6 @@ COPY . .
 # إنشاء قاعدة بيانات SQLite وإعطاء الصلاحيات
 RUN mkdir -p database && touch database/database.sqlite
 RUN chown -R www-data:www-data /var/www/html/database
-
-# إعطاء صلاحيات لمجلدات التخزين
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # ضبط مسار الـ Apache على مجلد public في لارافيل
@@ -35,8 +33,15 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
-# تفعيل الـ Rewrite وإلغاء أي محركات متضاربة (هنا حل الإيرور الأخير)
-RUN a2enmod rewrite && a2dismod mpm_event mpm_worker || true
+# تفعيل الـ Rewrite
+RUN a2enmod rewrite
+
+# --- الحل الجذري للإيرور: حذف المحركات المتضاربة بالقوة وتفعيل المحرك الأساسي فقط ---
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.load \
+          /etc/apache2/mods-enabled/mpm_worker.load \
+          /etc/apache2/mods-enabled/mpm_event.conf \
+          /etc/apache2/mods-enabled/mpm_worker.conf
+RUN a2enmod mpm_prefork
 
 # تفعيل البورت الديناميكي وقت التشغيل وتمريره للأباتشي
 CMD sed -i "s/Listen 80/Listen ${PORT:-8080}/g" /etc/apache2/ports.conf && \
