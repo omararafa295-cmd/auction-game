@@ -36,12 +36,9 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.
 # تفعيل الـ Rewrite
 RUN a2enmod rewrite
 
-# --- الحل الجذري للإيرور: تعطيل كل المحركات المتضاربة بأمر أباتشي الرسمي، ثم تفعيل المحرك الأساسي فقط ---
-RUN a2dismod mpm_event mpm_worker mpm_prefork 2>/dev/null; \
+# --- الحل الجذري: إغلاق المحركات المتضاربة وتفعيل البورت الديناميكي "وقت التشغيل" ---
+CMD a2dismod mpm_event mpm_worker 2>/dev/null || true && \
     a2enmod mpm_prefork && \
-    apache2ctl -M 2>&1 | grep mpm
-
-# تفعيل البورت الديناميكي وقت التشغيل وتمريره للأباتشي
-CMD sed -i "s/Listen 80/Listen ${PORT:-8080}/g" /etc/apache2/ports.conf && \
+    sed -i "s/Listen 80/Listen ${PORT:-8080}/g" /etc/apache2/ports.conf && \
     sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${PORT:-8080}>/g" /etc/apache2/sites-available/000-default.conf && \
     apache2-foreground
