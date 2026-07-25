@@ -36,12 +36,10 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.
 # تفعيل الـ Rewrite
 RUN a2enmod rewrite
 
-# --- الحل الجذري للإيرور: حذف المحركات المتضاربة بالقوة وتفعيل المحرك الأساسي فقط ---
-RUN rm -f /etc/apache2/mods-enabled/mpm_event.load \
-          /etc/apache2/mods-enabled/mpm_worker.load \
-          /etc/apache2/mods-enabled/mpm_event.conf \
-          /etc/apache2/mods-enabled/mpm_worker.conf
-RUN a2enmod mpm_prefork
+# --- الحل الجذري للإيرور: تعطيل كل المحركات المتضاربة بأمر أباتشي الرسمي، ثم تفعيل المحرك الأساسي فقط ---
+RUN a2dismod mpm_event mpm_worker mpm_prefork 2>/dev/null; \
+    a2enmod mpm_prefork && \
+    apache2ctl -M 2>&1 | grep mpm
 
 # تفعيل البورت الديناميكي وقت التشغيل وتمريره للأباتشي
 CMD sed -i "s/Listen 80/Listen ${PORT:-8080}/g" /etc/apache2/ports.conf && \
